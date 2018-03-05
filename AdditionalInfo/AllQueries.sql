@@ -12,11 +12,11 @@ SELECT UserID, Username, COUNT(FollowedID) AS FollowerNum,
 	FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
 	GROUP BY UserID, Username ORDER BY FollowingUser, FollowerNum DESC;
 
--- Search for a user, search for Mia
+-- Search for a user
 SELECT UserID, Username, COUNT(FollowedID) AS FollowerNum,
 	MAX(CASE WHEN FollowingID = 6 THEN 1 ELSE 0 END) AS FollowingUser
 	FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
-	WHERE Username LIKE '%mia%' 
+	WHERE Username LIKE '%mi%' 
 	GROUP BY UserID, Username  ORDER BY FollowerNum DESC, LEN(Username);
 
 -- Get all the users
@@ -24,20 +24,20 @@ SELECT * FROM [User];
 
 ----------------------------- Follow -----------------------------
 
--- Follow a user, Kevin Follows Mia
-INSERT INTO [Follow] (FollowingID, FollowedID) VALUES(6, 12);
+-- Follow a user
+INSERT INTO [Follow] (FollowingID, FollowedID) VALUES(6, 9);
 
 -- Get the following table
 SELECT * FROM [Follow];
 
--- Get all the people that a user follows (sorted based on follow length), get all the people Kevin follows
+-- Get all the people that a user follows (sorted based on follow length)
 SELECT NewUsers.*, DATEDIFF(MINUTE, FollowDate, GETDATE()) AS FollowMins
 	FROM (SELECT TOP 100 PERCENT UserID, Username, COUNT(FollowedID) AS FollowerNum 
 		FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
 		GROUP BY Username, UserID ORDER BY FollowerNum DESC) AS NewUsers
-	LEFT JOIN [Follow] ON (FollowedID = NewUsers.UserID) WHERE FollowingID = 6 ORDER BY FollowDate DESC;
+	LEFT JOIN [Follow] ON (FollowedID = NewUsers.UserID) WHERE FollowingID = 10 ORDER BY FollowDate DESC;
 
--- Get all the people that are following to a user, people that follow Kevin
+-- Get all the people that are following to a user
 -- also show number of followers and whether the current user follows others
 SELECT NewUsers.*, DATEDIFF(MINUTE, FollowDate, GETDATE()) AS FollowMins,
 	CASE WHEN UserID IN 
@@ -48,7 +48,7 @@ SELECT NewUsers.*, DATEDIFF(MINUTE, FollowDate, GETDATE()) AS FollowMins,
 		GROUP BY Username, UserID ORDER BY FollowerNum DESC) AS NewUsers
 	LEFT JOIN [Follow] ON (FollowingID = NewUsers.UserID) WHERE FollowedID = 6 ORDER BY FollowDate DESC;
 
--- Unfollow a user, Kevin unfollows Mia 
+-- Unfollow a user
 DELETE FROM [Follow] WHERE FollowingID = 6 AND FollowedID = 12;
 
 ----------------------------- Question -----------------------------
