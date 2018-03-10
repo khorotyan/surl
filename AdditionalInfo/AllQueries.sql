@@ -16,7 +16,7 @@ SELECT UserID, Username, COUNT(FollowedID) AS FollowerNum,
 SELECT UserID, Username, COUNT(FollowedID) AS FollowerNum,
 	MAX(CASE WHEN FollowingID = 6 THEN 1 ELSE 0 END) AS FollowingUser
 	FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
-	WHERE Username LIKE '%mi%' 
+	WHERE Username LIKE '%c%' 
 	GROUP BY UserID, Username  ORDER BY FollowerNum DESC, LEN(Username);
 
 -- Get all the users
@@ -25,7 +25,7 @@ SELECT * FROM [User];
 ----------------------------- Follow -----------------------------
 
 -- Follow a user
-INSERT INTO [Follow] (FollowingID, FollowedID) VALUES(6, 9);
+INSERT INTO [Follow] (FollowingID, FollowedID) VALUES(3, 16);
 
 -- Get the following table
 SELECT * FROM [Follow];
@@ -35,7 +35,7 @@ SELECT NewUsers.*, DATEDIFF(MINUTE, FollowDate, GETDATE()) AS FollowMins
 	FROM (SELECT TOP 100 PERCENT UserID, Username, COUNT(FollowedID) AS FollowerNum 
 		FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
 		GROUP BY Username, UserID ORDER BY FollowerNum DESC) AS NewUsers
-	LEFT JOIN [Follow] ON (FollowedID = NewUsers.UserID) WHERE FollowingID = 10 ORDER BY FollowDate DESC;
+	LEFT JOIN [Follow] ON (FollowedID = NewUsers.UserID) WHERE FollowingID = 3 ORDER BY FollowDate DESC;
 
 -- Get all the people that are following to a user
 -- also show number of followers and whether the current user follows others
@@ -48,89 +48,214 @@ SELECT NewUsers.*, DATEDIFF(MINUTE, FollowDate, GETDATE()) AS FollowMins,
 		GROUP BY Username, UserID ORDER BY FollowerNum DESC) AS NewUsers
 	LEFT JOIN [Follow] ON (FollowingID = NewUsers.UserID) WHERE FollowedID = 6 ORDER BY FollowDate DESC;
 
+-- Search within your following list
+SELECT NewUsers.*, DATEDIFF(MINUTE, FollowDate, GETDATE()) AS FollowMins
+	FROM (SELECT TOP 100 PERCENT UserID, Username, COUNT(FollowedID) AS FollowerNum 
+		FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
+		GROUP BY Username, UserID ORDER BY FollowerNum DESC) AS NewUsers
+	LEFT JOIN [Follow] ON (FollowedID = NewUsers.UserID) 
+	WHERE FollowingID = 3 AND Username LIKE '%c%' ORDER BY FollowDate DESC;
+
+-- Search within your followers list
+SELECT NewUsers.*, DATEDIFF(MINUTE, FollowDate, GETDATE()) AS FollowMins,
+	CASE WHEN UserID IN 
+		(SELECT FollowedID FROM [Follow] WHERE FollowingID = 6) 
+		THEN 1 ELSE 0 END AS FollowingUser
+	FROM (SELECT TOP 100 PERCENT UserID, Username, COUNT(FollowedID) AS FollowerNum 
+		FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
+		GROUP BY Username, UserID ORDER BY FollowerNum DESC) AS NewUsers
+	LEFT JOIN [Follow] ON (FollowingID = NewUsers.UserID) 
+	WHERE FollowedID = 6 AND Username LIKE '%c%' ORDER BY FollowDate DESC;
+
 -- Unfollow a user
 DELETE FROM [Follow] WHERE FollowingID = 6 AND FollowedID = 12;
 
------------------------------ Question -----------------------------
+----------------------------- Questions(Comments, Likes, Views) -----------------------------
 
--- Create a question
-INSERT INTO [Question] (UserID, QuestionText, Description) VALUES(16, 'Another Question', 'Another Description');
+-- Create a question (also create the tags)
+INSERT INTO [Question] (UserID, QuestionText, Description, Tags) 
+	VALUES(9, 'Some Question', 'Some Description', 'tag1 tag2 tag3');
 
--- Delete a question, also clear its tags and comments
-DELETE FROM [Tag] WHERE QuestionID = 5;
-DELETE FROM [Comment] WHERE QuestionID = 4;
-DELETE FROM [Question] WHERE QuestionID = 5;
+-- Edit a question (edit question, description, or tags)
+UPDATE [Question] SET QuestionText = 'Modified question', Description = 'Modified description', Tags = 'newtag some_tag another-tag' WHERE QuestionID = 3;
 
--- Get all the questions
+-- Delete a question
+DELETE FROM [Question] WHERE QuestionID = 3;
+
+-- Sort questions by / Popular / Date / Friends / Own / Trending / Unanswered / Unverified /
+-- Also show likes, answers, views, and whether the question is verified or not
+--- Popular Questions
+SELECT Q.*,
+	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+ 	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+	FROM [Question] AS Q 
+	ORDER BY Likes DESC;
+--- Recent Questions
+SELECT Q.*, 
+	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+	FROM [Question] AS Q 
+	ORDER BY Q.PostDate DESC;
+--- Friend Questions
+SELECT Q.*,
+	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+	FROM [Question] AS Q
+	WHERE Q.UserID IN (SELECT FollowedID FROM [Follow] WHERE FollowingID = 3)
+	ORDER BY Q.PostDate DESC;
+--- Own Questions
+SELECT Q.*,
+	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+	FROM [Question] AS Q 
+	WHERE Q.UserID = 16
+	ORDER BY Q.PostDate DESC;
+--- Trending Questions (Weekly)
+SELECT * FROM
+	(SELECT TOP 100 PERCENT
+		Q.*, 
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID 
+			AND ViewTime > DATEADD(HOUR, -24*7, GETDATE())) AS NewViews,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID 
+			AND LikeTime > DATEADD(HOUR, -24*7, GETDATE())) AS NewLikes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID
+			AND AnswerDate > DATEADD(HOUR, -24*7, GETDATE())) AS NewAnswers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q) AS NewQuestion
+	ORDER BY (0.2 * NewViews + 0.3 * NewAnswers + 0.5 * NewLikes) DESC
+--- Unanswered Questions
+SELECT * FROM 
+	(SELECT TOP 100 PERCENT 
+		Q.*, 
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q LEFT JOIN [Comment] AS C ON (Q.QuestionID = C.QuestionID) 
+		ORDER BY Q.PostDate DESC) AS NewQuestion
+	WHERE Answers = 0;
+--- Unverified Questions
+SELECT * FROM 
+	(SELECT TOP 100 PERCENT 
+		Q.*, 
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q 
+		ORDER BY Q.PostDate DESC) AS NewQuestion
+	WHERE Verified = 0;
+
+-- Search for a question in the question, tag, username and description fields 
+SELECT * FROM
+	(SELECT TOP 100 PERCENT
+		Q.*, 
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q) AS NewQuestion
+	WHERE CONCAT_WS('', QuestionText, Tags, Username, Description) LIKE '%rob%';
+
+-- Get a specific question
+SELECT *,
+	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes
+	FROM [Question] AS Q,
+	(SELECT COUNT(*) AS Answers, ISNULL(MAX(CAST(Verified AS INT)), 0) AS Verified FROM [Comment] WHERE QuestionID = 4) AS C 
+	WHERE Q.QuestionID = 4;
+
+-- View a question
+INSERT INTO [View] (QuestionID, UserID) VALUES (14, 4);
+
+-- Like/Dislike a question
+INSERT INTO [LikeQuestion] (QuestionID, UserID, LikeValue) VALUES (13, 12, 1);
+
+-- Create a comment
+INSERT INTO [Comment] (QuestionID, UserID, CommentText) VALUES (8, 10, 'Another Comment');
+
+-- Edit a comment 
+UPDATE [Comment] SET CommentText = 'Modified Comment' WHERE CommentID = 1;
+
+-- Delete a comment
+DELETE FROM [Comment] WHERE CommentID = 1;
+
+-- Like/Dislike a comment
+INSERT INTO [LikeComment] (CommentID, UserID, LikeValue) VALUES (11, 13, 1);
+
+-- Verify/Unverify a comment 
+UPDATE [Comment] SET Verified = 1 WHERE CommentID = 32;
+
+-- Get comments of a question sorted by / Votes / Date /
+SELECT Comment.*, 
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM LikeComment WHERE CommentID = Comment.CommentID) 
+	AS Likes FROM [Comment] ORDER BY Likes DESC;
+
+SELECT Comment.*, 
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM LikeComment WHERE CommentID = Comment.CommentID) 
+	AS Likes FROM [Comment] ORDER BY AnswerDate;
+
+-- Get all questions
 SELECT * FROM [Question];
 
--- Like/Dislike and View a question
-UPDATE [Question] SET Likes = Likes+1 WHERE QuestionID = 1;
-UPDATE [Question] SET Likes = Likes-1 WHERE QuestionID = 1;
-UPDATE [Question] SET Views = Views+1 WHERE QuestionID = 1;
-
--- Update the question and the description
-UPDATE [Question] SET QuestionText = 'Modified question', Description = 'Modified description' WHERE QuestionID = 1;
-
--- Get a question, and show whether it is verified
-SELECT Question.*, (SELECT COUNT(Verified) FROM [Comment] WHERE QuestionID = 7 AND Verified = 1) AS Verified
-	FROM [Question] WHERE QuestionID = 7;
-
--- Sort the questions by Most Popular / Recent / Unanswered / Own questions / Followers / Unverified
--- Most Popular
-SELECT Question.*, (SELECT COUNT(Verified) FROM [Comment] WHERE QuestionID = Question.QuestionID AND Verified = 1) AS Verified
-	FROM [Question] ORDER BY Likes DESC ;
--- Recent
-SELECT Question.*, (SELECT COUNT(Verified) FROM [Comment] WHERE QuestionID = Question.QuestionID AND Verified = 1) AS Verified
-	FROM [Question] ORDER BY PostDate DESC;
--- Unanswered
-SELECT Question.*, (SELECT COUNT(Verified) FROM [Comment] WHERE QuestionID = Question.QuestionID AND Verified = 1) AS Verified
-	FROM [Question] WHERE Answers = 0;
--- Own questions
-SELECT Question.*, (SELECT COUNT(Verified) FROM [Comment] WHERE QuestionID = Question.QuestionID AND Verified = 1) AS Verified
-	FROM [Question] WHERE UserID = 17;
--- Followers
-SELECT Question.*, (SELECT COUNT(Verified) FROM [Comment] WHERE QuestionID = Question.QuestionID AND Verified = 1) AS Verified
-	FROM [Question] WHERE UserID IN (SELECT FollowedID FROM [Follow] WHERE FollowingID = 6);
--- Unverified
-SELECT * FROM 
-	(SELECT TOP 100 PERCENT Question.*, 
-		(SELECT COUNT(Verified) FROM [Comment] WHERE QuestionID = Question.QuestionID AND Verified = 1) AS Verified
-		FROM [Question] ORDER BY PostDate DESC) AS NewQuestions
-	WHERE NewQuestions.Verified = 0;
-
------------------------------ Tag -----------------------------
-
--- Add / Remove a tag from the question
-INSERT INTO [Tag] (QuestionID, TagText) VALUES (1, 'SomeTag1'), (1, 'SomeTag2'), (1, 'SomeTag3');
-DELETE FROM [Tag] WHERE QuestionID = 1 AND TagText = 'SomeTag4';
-
--- Show the most frequently used tags
-SELECT TagText, COUNT(TagText) AS TagNum FROM [Tag] GROUP BY TagText ORDER BY TagNum DESC;
-
--- Show all tags
-SELECT * FROM [Tag];
-
------------------------------ Comment -----------------------------
-
--- Answer to a question
-INSERT INTO [Comment] (QuestionID, UserID, CommentText) VALUES (6, 7, 'Another answer');
-UPDATE [Question] SET Answers = Answers+1 WHERE QuestionID = 6;
-
--- Show all the questions
+-- Get all comments
 SELECT * FROM [Comment];
 
--- Delete an answer
-DELETE FROM [Comment] WHERE CommentID = 2;
-UPDATE [Question] SET Answers = Answers-1 WHERE QuestionID = 6;
+-- Get all Views
+SELECT * FROM [View];
 
--- Like a comment
-UPDATE [Comment] SET Likes = Likes+1 WHERE CommentID = 4;
+-- Get all likes
+SELECT * FROM [LikeQuestion];
+SELECT * FROM [LikeComment];
 
--- Verify / Unverify an answer
-UPDATE [Comment] SET Verified = 1 WHERE CommentID = 6;
-UPDATE [Comment] SET Verified = 0 WHERE CommentID = 6;
+-- Clear tables
+DELETE FROM [Question]
 
--- Sort Questions by Date / Likes, get verified answer first
-SELECT * FROM [Comment] WHERE QuestionID = 6 ORDER BY Verified DESC, AnswerDate DESC;
-SELECT * FROM [Comment] WHERE QuestionID = 6 ORDER BY Verified DESC, Likes DESC;
+----------------------------- ___ Performance Measures ___ -----------------------------
+
+DECLARE @t1 DATETIME2;
+DECLARE @t2 DATETIME2;
+
+SET @t1 = GETDATE();
+SELECT Q.*, COUNT(C.AnswerDate) AS Answers, ISNULL(MAX(CAST(C.Verified AS INT)), 0) AS Verified,
+	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes
+	FROM [Question] AS Q LEFT JOIN [Comment] AS C ON (Q.QuestionID = C.QuestionID) 
+	GROUP BY Q.Description, Q.PostDate, Q.QuestionID, Q.QuestionText, Q.UserID
+	ORDER BY Likes DESC;
+
+SET @t2 = GETDATE();
+SELECT DATEDIFF(nanosecond,@t1,@t2) AS Nano1;
+
+
+SET @t1 = GETDATE();
+
+SELECT Q.*,
+	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+	FROM [Question] AS Q ORDER BY Likes DESC;
+
+SET @t2 = GETDATE();
+SELECT DATEDIFF(nanosecond,@t1,@t2) AS Nano2;
