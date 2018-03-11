@@ -10,33 +10,33 @@ using Surl.Data;
 namespace Surl.Controllers
 {
     [Produces("application/json")]
-    [Route("api/Views")]
-    public class ViewsController : Controller
+    [Route("api/LikeComments")]
+    public class LikeCommentsController : Controller
     {
-        private readonly ViewContext _context;
+        private readonly LikeCommentContext _context;
 
-        public ViewsController(ViewContext context)
+        public LikeCommentsController(LikeCommentContext context)
         {
             _context = context;
         }
 
-        // POST: api/Views/View
-        // View a question
+        // POST: api/LikeComments/Like
+        // Like a comment
         //[Authorize]
-        [HttpPost("View")]
-        public async Task<IActionResult> ViewQuestion([FromBody] View view)
+        [HttpPost("Like")]
+        public async Task<IActionResult> Like([FromBody] LikeComment like)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            view.ViewTime = DateTime.Now;
+            like.LikeTime = DateTime.Now;
 
-            _context.View.Add(view);
+            _context.LikeComment.Add(like);
             await _context.SaveChangesAsync();
 
-            return Ok("You viewed the question");
+            return Ok("You liked the comment");
         }
     }
 }

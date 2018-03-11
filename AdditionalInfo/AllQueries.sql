@@ -82,63 +82,67 @@ UPDATE [Question] SET QuestionText = 'Modified question', Description = 'Modifie
 -- Delete a question
 DELETE FROM [Question] WHERE QuestionID = 3;
 
--- Sort questions by / Popular / Date / Friends / Own / Trending / Unanswered / Unverified /
+-- Sort questions by / Popular / Recent / Friend / Own / Trending / Unanswered / Unverified /
 -- Also show likes, answers, views, and whether the question is verified or not
 --- Popular Questions
-SELECT Q.*,
-	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
- 	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
-	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
-	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
-	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
-	FROM [Question] AS Q 
-	ORDER BY Likes DESC;
+SELECT * FROM
+	(SELECT TOP 100 PERCENT Q.*,
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+ 		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q 
+		ORDER BY Likes DESC) AS NewQuestion;
 --- Recent Questions
-SELECT Q.*, 
-	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
-	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
-	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
-	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
-	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
-	FROM [Question] AS Q 
-	ORDER BY Q.PostDate DESC;
+SELECT * FROM
+	(SELECT TOP 100 PERCENT Q.*,
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q 
+		ORDER BY Q.PostDate DESC) AS NewQuestion;
 --- Friend Questions
-SELECT Q.*,
-	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
-	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
-	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
-	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
-	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
-	FROM [Question] AS Q
-	WHERE Q.UserID IN (SELECT FollowedID FROM [Follow] WHERE FollowingID = 3)
-	ORDER BY Q.PostDate DESC;
+SELECT * FROM
+	(SELECT TOP 100 PERCENT Q.*,
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q
+		WHERE Q.UserID IN (SELECT FollowedID FROM [Follow] WHERE FollowingID = 3)
+		ORDER BY Q.PostDate DESC) AS NewQuestion;
 --- Own Questions
-SELECT Q.*,
-	(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
-	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
-	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
-	(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
-	(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
-	FROM [Question] AS Q 
-	WHERE Q.UserID = 16
-	ORDER BY Q.PostDate DESC;
+SELECT * FROM
+	(SELECT TOP 100 PERCENT Q.*,
+		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
+		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+		FROM [Question] AS Q 
+		WHERE Q.UserID = 16
+		ORDER BY Q.PostDate DESC) AS NewQuestion;
 --- Trending Questions (Weekly)
 SELECT * FROM
 	(SELECT TOP 100 PERCENT
 		Q.*, 
 		(SELECT Username FROM [User] WHERE UserID = Q.UserID) AS Username,
 		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
+		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
+		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,	
+		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified,
 		(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID 
 			AND ViewTime > DATEADD(HOUR, -24*7, GETDATE())) AS NewViews,
-		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes,
 		(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID 
 			AND LikeTime > DATEADD(HOUR, -24*7, GETDATE())) AS NewLikes,
-		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Answers,
 		(SELECT COUNT(*) FROM [Comment] WHERE QuestionID = Q.QuestionID
-			AND AnswerDate > DATEADD(HOUR, -24*7, GETDATE())) AS NewAnswers,
-		(SELECT ISNULL(MAX(CAST(Verified AS INT)), 0) FROM [Comment] WHERE QuestionID = Q.QuestionID) AS Verified
+			AND AnswerDate > DATEADD(HOUR, -24*7, GETDATE())) AS NewAnswers
 		FROM [Question] AS Q) AS NewQuestion
-	ORDER BY (0.2 * NewViews + 0.3 * NewAnswers + 0.5 * NewLikes) DESC
+	ORDER BY (0.2 * NewViews + 0.3 * NewAnswers + 0.5 * NewLikes) DESC;
 --- Unanswered Questions
 SELECT * FROM 
 	(SELECT TOP 100 PERCENT 
@@ -182,7 +186,8 @@ SELECT *,
 	(SELECT COUNT(*) FROM [View] WHERE QuestionID = Q.QuestionID) AS Views,
 	(SELECT ISNULL(SUM(LikeValue), 0) FROM [LikeQuestion] WHERE QuestionID = Q.QuestionID) AS Likes
 	FROM [Question] AS Q,
-	(SELECT COUNT(*) AS Answers, ISNULL(MAX(CAST(Verified AS INT)), 0) AS Verified FROM [Comment] WHERE QuestionID = 4) AS C 
+	(SELECT COUNT(*) AS Answers, ISNULL(MAX(CAST(Verified AS INT)), 0) AS Verified 
+		FROM [Comment] WHERE QuestionID = 4) AS C 
 	WHERE Q.QuestionID = 4;
 
 -- View a question
@@ -192,7 +197,7 @@ INSERT INTO [View] (QuestionID, UserID) VALUES (14, 4);
 INSERT INTO [LikeQuestion] (QuestionID, UserID, LikeValue) VALUES (13, 12, 1);
 
 -- Create a comment
-INSERT INTO [Comment] (QuestionID, UserID, CommentText) VALUES (8, 10, 'Another Comment');
+INSERT INTO [Comment] (QuestionID, UserID, CommentText) VALUES (2, 10, 'Another Comment');
 
 -- Edit a comment 
 UPDATE [Comment] SET CommentText = 'Modified Comment' WHERE CommentID = 1;
@@ -206,12 +211,15 @@ INSERT INTO [LikeComment] (CommentID, UserID, LikeValue) VALUES (11, 13, 1);
 -- Verify/Unverify a comment 
 UPDATE [Comment] SET Verified = 1 WHERE CommentID = 32;
 
--- Get comments of a question sorted by / Votes / Date /
+-- Get comments of a question sorted by / Popular / Recent / 
+--- Popular comments
 SELECT Comment.*, 
+	(SELECT Username FROM [User] WHERE UserID = Comment.UserID) AS Username,
 	(SELECT ISNULL(SUM(LikeValue), 0) FROM LikeComment WHERE CommentID = Comment.CommentID) 
 	AS Likes FROM [Comment] ORDER BY Likes DESC;
-
+--- Recent comments
 SELECT Comment.*, 
+	(SELECT Username FROM [User] WHERE UserID = Comment.UserID) AS Username,
 	(SELECT ISNULL(SUM(LikeValue), 0) FROM LikeComment WHERE CommentID = Comment.CommentID) 
 	AS Likes FROM [Comment] ORDER BY AnswerDate;
 

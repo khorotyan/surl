@@ -12,7 +12,6 @@ namespace Surl.Data
         public int UserID { get; set; }
         public string CommentText { get; set; }
         public DateTime AnswerDate { get; set; }
-        public int Likes { get; set; }
         public bool Verified { get; set; }
     }
 }

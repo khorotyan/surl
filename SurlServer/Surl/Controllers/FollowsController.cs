@@ -25,8 +25,8 @@ namespace Surl.Controllers
         public FollowsController(FollowContext context, IConfiguration configuration)
         {
             _context = context;
-            _configuration = configuration;
 
+            _configuration = configuration;
             _conn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
             _comm = _conn.CreateCommand();
         }
@@ -61,8 +61,8 @@ namespace Surl.Controllers
                 return BadRequest(ModelState);
             }
 
-            var dbFollow = await _context.Follow.SingleOrDefaultAsync(m => 
-                m.FollowingID == follow.FollowingID && m.FollowedID == follow.FollowedID);
+            var dbFollow = await _context.Follow.SingleOrDefaultAsync(c => 
+                c.FollowingID == follow.FollowingID && c.FollowedID == follow.FollowedID);
 
             if (dbFollow == null)
             {

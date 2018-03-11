@@ -11,6 +11,7 @@ namespace Surl.Data
         public int UserID { get; set; }
         public string QuestionText { get; set; }
         public string Description { get; set; }
+        public string Tags { get; set; }
         public DateTime PostDate { get; set; }
     }
 }

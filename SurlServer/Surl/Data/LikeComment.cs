@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 
 namespace Surl.Data
 {
-    public class View
+    public class LikeComment
     {
-        public long QuestionID { get; set; }
+        public long CommentID { get; set; }
         public int UserID { get; set; }
-        public DateTime ViewTime { get; set; }
+        public short LikeValue { get; set; }
+        public DateTime LikeTime { get; set; }
     }
 }
