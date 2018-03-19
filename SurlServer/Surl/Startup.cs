@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Debug;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Surl.Data;
@@ -42,6 +43,19 @@ namespace Surl
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SigningKey"]))
                     };
                 });
+
+            services.AddLogging(builder =>
+            {
+                builder.AddConfiguration(Configuration.GetSection("Logging"))
+                    // filter for all providers
+                    .AddFilter("System", LogLevel.Debug)
+                    // Only for Debug logger, using the provider type or it's alias
+                    .AddFilter("Debug", LogLevel.Information)
+                    // Only for Console logger by provider type
+                    .AddFilter<DebugLoggerProvider>("System", LogLevel.Error)
+                    .AddConsole()
+                    .AddDebug();
+            });
 
             services.AddDbContext<UserContext>(options => options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddDbContext<FollowContext>(options => options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));

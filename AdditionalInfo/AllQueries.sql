@@ -16,7 +16,7 @@ SELECT UserID, Username, COUNT(FollowedID) AS FollowerNum,
 SELECT UserID, Username, COUNT(FollowedID) AS FollowerNum,
 	MAX(CASE WHEN FollowingID = 6 THEN 1 ELSE 0 END) AS FollowingUser
 	FROM [User] LEFT JOIN [Follow] ON (FollowedID = UserID) 
-	WHERE Username LIKE '%c%' 
+	WHERE Username LIKE '%a%' 
 	GROUP BY UserID, Username  ORDER BY FollowerNum DESC, LEN(Username);
 
 -- Get all the users

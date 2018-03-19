@@ -33,7 +33,7 @@ namespace Surl.Controllers
 
         // POST: api/Questions/Create
         // Create a question
-        //[Authorize]
+        [Authorize]
         [HttpPost("Create")]
         public async Task<IActionResult> CreateQuestion([FromBody] Question question)
         {
@@ -52,7 +52,7 @@ namespace Surl.Controllers
 
         // POST: api/Questions/Edit/5
         // Edit question, description and tags
-        //[Authorize]
+        [Authorize]
         [HttpPost("Edit/{id:long}")]
         public async Task<IActionResult> EditQuestion([FromRoute] long id, [FromBody] Question question)
         {
@@ -83,7 +83,7 @@ namespace Surl.Controllers
 
         // GET: api/Questions/QuestionForEdit/5
         // Get a question later to be edited
-        //[Authorize]
+        [Authorize]
         [HttpGet("QuestionForEdit/{qID:long}/{uID:int}")]
         public async Task<IActionResult> GetQuestionForEdit([FromRoute] long qID, [FromRoute] int uID)
         {
@@ -377,7 +377,7 @@ namespace Surl.Controllers
 
         // DELETE: api/Questions/5
         // Delete a question
-        //[Authorize]
+        [Authorize]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> DeleteQuestion([FromRoute] long id, [FromBody] int UserID)
         {

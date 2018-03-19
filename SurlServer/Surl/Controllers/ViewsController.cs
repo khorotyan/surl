@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,7 @@ namespace Surl.Controllers
 
         // POST: api/Views/View
         // View a question
-        //[Authorize]
+        [Authorize]
         [HttpPost("View")]
         public async Task<IActionResult> ViewQuestion([FromBody] View view)
         {

@@ -33,7 +33,7 @@ namespace Surl.Controllers
 
         // POST: api/Follows/Follow
         // Follow a user
-        //[Authorize]
+        [Authorize]
         [HttpPost("Follow")]
         public async Task<IActionResult> FollowUser([FromBody] Follow follow)
         {
@@ -52,7 +52,7 @@ namespace Surl.Controllers
 
         // DELETE: api/Follows/Unfollow
         // Unfollow a user
-        //[Authorize]
+        [Authorize]
         [HttpDelete("Unfollow")]
         public async Task<IActionResult> DeleteFollow([FromBody] Follow follow)
         {
@@ -77,7 +77,7 @@ namespace Surl.Controllers
 
         // GET: api/Follows/Followers/5
         // Get the user's followers
-        //[Authorize]
+        [Authorize]
         [HttpGet("Followers/{id:int}")]
         public IActionResult GetFollowers([FromRoute] int id)
         {
@@ -137,7 +137,7 @@ namespace Surl.Controllers
 
         // GET: api/Follows/Followings/5
         // Get the users whom the user follows
-        //[Authorize]
+        [Authorize]
         [HttpGet("Followings/{id:int}")]
         public IActionResult GetFollowings([FromRoute] int id)
         {

@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using Surl.Data;
 using Surl.Middleware;
 
@@ -19,13 +21,16 @@ namespace Surl.Controllers
     [Route("api/Users")]
     public class UsersController : Controller
     {
+        private readonly ILogger _logger;
         private readonly IConfiguration _configuration;
         private readonly UserContext _context;
         private SqlConnection _conn;
         private SqlCommand _comm;
 
-        public UsersController(UserContext context, IConfiguration configuration)
+        public UsersController(UserContext context, IConfiguration configuration, ILogger<UsersController> logger)
         {
+            _logger = logger;
+
             _context = context;
             _configuration = configuration;
 
@@ -36,11 +41,26 @@ namespace Surl.Controllers
         // POST: api/Users/Create
         // Create a user
         [HttpPost("Create")]
-        public async Task<IActionResult> CreateUser([FromBody] User user)
+        public async Task<IActionResult> CreateUser([FromForm] User user)
         {
+            //_logger.LogDebug("Some Log");
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            var dbUser = await _context.User.SingleOrDefaultAsync(c => c.Username == user.Username);
+
+            if (dbUser != null)
+            {
+                var response = new ContentResult()
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Content = "Username already exists"
+                };
+
+                return response; 
             }
 
             user.Password = SecurePasswordHasher.Hash(user.Password);
@@ -53,7 +73,9 @@ namespace Surl.Controllers
 
             var retVal = new {
                 user.UserID,
-                token = new JwtSecurityTokenHandler().WriteToken(token)
+                user.Email,
+                user.Username,
+                Token = new JwtSecurityTokenHandler().WriteToken(token)
             };
 
             return Ok(retVal);
@@ -62,14 +84,14 @@ namespace Surl.Controllers
         // POST: api/Users/LoAugin
         // Login a user
         [HttpPost("Login")]
-        public async Task<IActionResult> Login([FromBody] User user)
+        public async Task<IActionResult> Login([FromForm] User user)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var dbUser = await _context.User.SingleOrDefaultAsync(m => m.Email == user.Email && m.UserID == user.UserID);
+            var dbUser = await _context.User.SingleOrDefaultAsync(c => c.Email == user.Email);
 
             bool verified = SecurePasswordHasher.Verify(user.Password, dbUser.Password);
 
@@ -77,7 +99,15 @@ namespace Surl.Controllers
             {
                 var token = Authentication.GenerateToken(dbUser.Username, _configuration);
 
-                return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+                var retVal = new
+                {
+                    dbUser.UserID,
+                    dbUser.Email,
+                    dbUser.Username,
+                    Token = new JwtSecurityTokenHandler().WriteToken(token)
+                };
+
+                return Ok(retVal);
             }
             else
             {
@@ -87,7 +117,7 @@ namespace Surl.Controllers
 
         // GET: api/Users
         // Get all the users
-        //[Authorize]
+        [Authorize]
         [HttpGet]
         public IActionResult GetUsers()
         {
@@ -123,7 +153,7 @@ namespace Surl.Controllers
 
         // GET: api/Users/Top
         // Get the users with the most followers
-        //[Authorize]
+        [Authorize]
         [HttpGet("Top/{id:int}")]
         public IActionResult GetTopUsers([FromRoute] int id)
         {
@@ -179,7 +209,7 @@ namespace Surl.Controllers
 
         // GET: api/Users/Search/5/somesearch
         // Search for a user
-        //[Authorize]
+        [Authorize]
         [HttpGet("Search/{id:int}/{search}")]
         public IActionResult Search([FromRoute] int id, [FromRoute] string search)
         {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,7 @@ namespace Surl.Controllers
 
         // POST: api/LikeQuestions/Like
         // Like a question
-        //[Authorize]
+        [Authorize]
         [HttpPost("Like")]
         public async Task<IActionResult> Like([FromBody] LikeQuestion like)
         {

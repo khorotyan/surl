@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,7 @@ namespace Surl.Controllers
 
         // POST: api/Comments/Create
         // Create a comment
-        //[Authorize]
+        [Authorize]
         [HttpPost("Create")]
         public async Task<IActionResult> CreateComment([FromBody] Comment comment)
         {
@@ -54,7 +55,7 @@ namespace Surl.Controllers
 
         // POST: api/Comments/Edit/5
         // Edit a comment
-        //[Authorize]
+        [Authorize]
         [HttpPost("Edit/{id:long}")]
         public async Task<IActionResult> EditComment([FromRoute] long id, [FromBody] Comment comment)
         {
@@ -80,7 +81,7 @@ namespace Surl.Controllers
 
         // POST: api/Comments/Verify/5
         // Verify a comment
-        //[Authorize]
+        [Authorize]
         [HttpPost("Verify/{id:long}")]
         public async Task<IActionResult> VerifyComment([FromRoute] long id, [FromBody] int UserID, 
             [FromBody] bool Verified)
@@ -109,7 +110,7 @@ namespace Surl.Controllers
 
         // GET: api/Comments/CommentForEdit/5
         // Get a comment information later to be edited
-        //[Authorize]
+        [Authorize]
         [HttpGet("CommentForEdit/{cID:long}/{uID:int}")]
         public async Task<IActionResult> GetCommentForEdit([FromRoute] long cID, [FromRoute] int uID)
         {
@@ -204,7 +205,7 @@ namespace Surl.Controllers
 
         // POST: api/Comments/5
         // Delete a comment
-        //[Authorize]
+        [Authorize]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> DeleteComment([FromRoute] long id, [FromBody] int UserID)
         {
@@ -220,7 +221,7 @@ namespace Surl.Controllers
                 return NotFound();
             }
 
-            // Only the comment poster can edlete it
+            // Only the comment poster can delete it
             // Later moderators can be added and then here can be done a check like this
             //  Check if UserID is in the moderator list, then let him/her delete the question
             if (UserID != dbComment.UserID)
